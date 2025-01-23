@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <style>
+        /* General styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .tabs button {
+            flex: 1;
+            padding: 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            transition: background-color 0.3s;
+        }
+
+        .tabs button:hover {
+            background-color: #ddd;
+        }
+
+        .tabs button.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form styles */
+        form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        form input, form select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        form button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        form button:hover {
+            background-color: #0056b3;
+        }
+
+        /* User list styles */
+        .user-list .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-item img {
+            width: 50px;
+            height: 50px;
+            margin-right: 10px;
+            border-radius: 50%;
+        }
+
+        .user-actions button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .user-actions button:hover {
+            background-color: #0056b3;
+        }
+
+        .user-actions button:first-child {
+            margin-right: 5px;
+        }
+
+        /* Search bar styles */
+        #search {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>User Management</h1>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+        <button data-tab="createTab" onclick="showTab('createTab')" class="active">Create</button>
+        <button data-tab="listTab" onclick="showTab('listTab')">List</button>
+    </div>
+
+    <!-- Tab: Create User -->
+    <div id="createTab" class="tab-content active">
+        <form onsubmit="event.preventDefault(); addUser();">
+            <label for="name">Name:</label>
+            <input type="text" id="name" required placeholder="Enter full name">
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" required placeholder="Enter email address">
+
+            <label for="gender">Gender:</label>
+            <select id="gender" required>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+            </select>
+
+            <label for="departement">Department:</label>
+            <input type="text" id="departement" required placeholder="Enter department">
+
+            <label for="image">Image URL:</label>
+            <input type="url" id="image" required placeholder="Enter image URL">
+
+            <button type="submit">Add User</button>
+        </form>
+    </div>
+
+    <!-- Tab: User List -->
+    <div id="listTab" class="tab-content">
+        <input type="text" id="search" placeholder="Search by name" oninput="fetchData()">
+        <div id="userList"></div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all tabs and remove active classes
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab and set active class
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        }
+
+        function fetchData() {
+            const search = document.getElementById('search').value;
+            fetch(`api.php?action=getAll&search=${search}`)
+                .then(response => response.json())
+                .then(data => {
+                    const userList = document.getElementById('userList');
+                    userList.innerHTML = '';
+
+                    if (data.data.length === 0) {
+                        userList.innerHTML = '<p>No users found.</p>';
+                        return;
+                    }
+
+                    data.data.forEach(user => {
+                        const userItem = `
+                            <div class="user-item">
+                                <div>
+                                    <img src="${user.image}" alt="${user.name}">
+                                    <strong>${user.name}</strong> (${user.email})<br>
+                                    Department: ${user.departement}
+                                </div>
+                                <div class="user-actions">
+                                    <button onclick="editUser('${user.id}')">Edit</button>
+                                    <button onclick="deleteUser('${user.id}')">Delete</button>
+                                </div>
+                            </div>`;
+                        userList.innerHTML += userItem;
+                    });
+                });
+        }
+
+        function addUser() {
+            const formData = new FormData();
+            formData.append('name', document.getElementById('name').value);
+            formData.append('email', document.getElementById('email').value);
+            formData.append('gender', document.getElementById('gender').value);
+            formData.append('departement', document.getElementById('departement').value);
+            formData.append('image', document.getElementById('image').value);
+
+            fetch('api.php?action=addUser', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchData();
+                showTab('listTab');
+            });
+        }
+
+        function deleteUser(id) {
+            fetch(`api.php?action=deleteUser&id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    fetchData();
+                });
+        }
+
+        function editUser(id) {
+            const name = prompt('Enter new name:');
+            const email = prompt('Enter new email:');
+            const gender = prompt('Enter new gender (MALE/FEMALE):');
+            const departement = prompt('Enter new department:');
+            const image = prompt('Enter new image URL:');
+
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('name', name);
+            formData.append('email', email);
+            formData.append('gender', gender);
+            formData.append('departement', departement);
+            formData.append('image', image);
+
+            fetch('api.php?action=updateUser', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchData();
+            });
+        }
+    </script>
+</body>
+</html>
